@@ -1,0 +1,4 @@
+_inherit: inheritArrayTpt.yml
+a: 
+- 1
+- 3

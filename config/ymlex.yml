@@ -1,0 +1,5 @@
+# ymlex config
+---
+log:
+  level: DEBUG
+  path: /Users/wenli/work/git/ymlex/log/ymlex.log
