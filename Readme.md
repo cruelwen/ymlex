@@ -54,3 +54,9 @@ c:
   cb: /var/lib
 ```
 
+# 用法
+
+```ruby
+require "ymlex"
+hash = Ymlex.load_file "path_to_file", "dir_of_template"
+```
