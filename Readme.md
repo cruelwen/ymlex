@@ -16,7 +16,6 @@ c:
 ```
 继承：
 ```yml
-# Ymlex
 _inherig: template.yml
 a: "a_new"
 c: 
@@ -39,8 +38,7 @@ d: "d_new"
 * 支持在不同层进行多重继承，仅对当前层有效
 
 ## 变量替换
-```Yml
-# Ymlex
+```yml
 a: /home
 b: ${a}/user
 c: 
