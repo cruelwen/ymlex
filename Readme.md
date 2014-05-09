@@ -54,7 +54,7 @@ c:
   cb: /var/lib
 ```
 
-# 用法
+## 用法
 
 ```ruby
 require "ymlex"
