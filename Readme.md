@@ -39,24 +39,35 @@ d: "d_new"
 
 ## 变量替换
 ```yml
-a: /home
-b: ${a}/user
+a: "/home"
+b: "${a}/user"
 c: 
-  ca: /var
-  cb: ${c.ca}/lib
+  ca: "/var"
+  cb: "${c.ca}/lib"
 ```
 结果
 ```yml
-a: /home
-b: /home/user
+a: "/home"
+b: "/home/user"
 c: 
-  ca: /var
-  cb: /var/lib
+  ca: "/var"
+  cb: "/var/lib"
 ```
 
 ## 用法
 
 ```ruby
+# Gemfile
+gem "ymlex", :git => "http://gitlab.baidu.com/wenli/ymlex.git"
+```
+
+```bash
+bundle install 
+```
+
+```ruby
 require "ymlex"
-hash = Ymlex.load_file "path_to_file", "dir_of_template"
+# Ymlex.initLogger logger 默认logger为标准输出
+# Ymlex.initTptDir "path_to_template" 默认为和输入文件同路径
+hash = Ymlex.load_file "path_to_file"
 ```
