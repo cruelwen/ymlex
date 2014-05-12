@@ -2,6 +2,12 @@
 require 'spec_helper'
 
 describe Ymlex do
+  before do
+    logger = Logger.new STDOUT
+    logger.level = Logger::INFO
+    Ymlex.initLogger logger
+  end
+
   it "Pass all samples" do
      sampleDir = File.join File.dirname(__FILE__), '../sample'
      Dir.foreach sampleDir do |filename|

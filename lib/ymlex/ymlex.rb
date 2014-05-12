@@ -1,22 +1,52 @@
 #!/usr/bin/env ruby
 
-module Ymlex
+class Ymlex
 
-  def Ymlex.parse input, tptDir
+  @log = Logger.new STDOUT
+
+  def self.initLogger logger
+    @log = logger
+  end
+
+  def self.getLogger
+    @log
+  end
+
+  def self.initTptDir dir
+    @tptDir = dir
+  end
+
+  def self.getTptDir
+    @tptDir
+  end
+
+  def self.load_file file
+    @log.debug "start load file: #{file}"
+    input = YAML.load_file file
+    @tptDir ||= File.dirname file
+    input = parse input
+    @log.debug "after parse, #{file} is #{input}"
+    input = verblize input
+    @log.debug "after verblize, #{file} is #{input}"
+    input
+  end
+
+  def self.parse input
     input.each do |key,value|
       if value.class == Hash 
-        input[key] = parse value, tptDir
+        input[key] = parse value
       end
     end
     if input.key? "_inherit"
-      father = load_file File.join(tptDir,input["_inherit"])
+      father = load_file File.join(@tptDir,input["_inherit"])
       input.delete "_inherit"
       input = merge father, input
     end
     input
   end
 
-  def Ymlex.verblize input, ref
+  def self.verblize input, ref = nil
+    ref ||= input
     case 
     when input.class == Hash
       input.each do |key,value|
@@ -32,7 +62,7 @@ module Ymlex
     input
   end
 
-  def Ymlex.verbString input, ref
+  def self.verbString input, ref
     reg = /\${(.*?)}/.match(input)
     while reg
       toRep = reg[1] if reg
@@ -40,8 +70,8 @@ module Ymlex
       begin 
         resultEval = eval toEval
       rescue
-        resultEval = ""
-        # TODO
+        @log.error "fail to verbString #{input}"
+        raise "fail to verbString #{input}"
       end
       input = input.sub(/\${(.*?)}/,resultEval)
       reg = /\${(.*?)}/.match(input)
@@ -49,7 +79,7 @@ module Ymlex
     input
   end
 
-  def Ymlex.merge father, child
+  def self.merge father, child
     father.each do |key,value|
       if child.key? key
         if value.class == Hash && child[key].class == Hash
@@ -62,15 +92,9 @@ module Ymlex
       end
     end
     child.each do |key,value|
-      father[key] = value if !father.key? key
+      father[key] ||= value
     end
     father
   end
 
-  def Ymlex.load_file file, tptDir=nil
-    input = YAML.load_file file
-    tptDir = File.dirname file if tptDir==nil
-    input = parse input, tptDir
-    verblize input, input
-  end
 end
