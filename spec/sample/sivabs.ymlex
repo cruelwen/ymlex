@@ -1,0 +1,18 @@
+name: sivabs
+contacts:
+  rd: nil
+  op: g_ecomop_houyi_op
+  qa: nil
+_inherit: c_base.yml
+request:
+  listen:
+    port: 8080
+log:
+  access_log:
+    flow:
+      foumula: foumula > 100
+  error_log:
+    fatal:
+      foumula: foumula > 0
+exec:
+- /home/work/opbin/noah/sivabs.sh
