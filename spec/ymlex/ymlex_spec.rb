@@ -4,7 +4,7 @@ require 'spec_helper'
 describe Ymlex do
   before do
     logger = Logger.new STDOUT
-    logger.level = Logger::INFO
+#    logger.level = Logger::INFO
     Ymlex.initLogger logger
   end
 
@@ -18,6 +18,8 @@ describe Ymlex do
          sampleYml = File.join sampleDir, "#{fileBase}.yml"
          datYmlex = Ymlex.load_file sampleYmlex
          datYml = YAML.load_file sampleYml
+         datYmlex.to_yaml
+         File.open("#{sampleYml}.spec", "wb") {|f| YAML.dump(datYmlex, f) }
          datYmlex.should == datYml
          puts "... Pass"
        end

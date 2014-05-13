@@ -21,6 +21,10 @@ class Ymlex
   end
 
   def self.load_file file
+    loadFile file
+  end
+
+  def self.loadFile file
     @log.debug "start load file: #{file}"
     input = YAML.load_file file
     @tptDir ||= File.dirname file
@@ -31,6 +35,13 @@ class Ymlex
     input
   end
 
+  def self.loadTpt file
+    input = YAML.load_file file
+    @tptDir ||= File.dirname file
+    input = parse input
+    input
+  end
+
   def self.parse input
     input.each do |key,value|
       if value.class == Hash 
@@ -38,7 +49,7 @@ class Ymlex
       end
     end
     if input.key? "_inherit"
-      father = load_file File.join(@tptDir,input["_inherit"])
+      father = loadTpt File.join(@tptDir,input["_inherit"])
       input.delete "_inherit"
       input = merge father, input
     end
@@ -63,6 +74,7 @@ class Ymlex
   end
 
   def self.verbString input, ref
+    @log.debug "verbString #{input},ref is #{ref}"
     reg = /\${(.*?)}/.match(input)
     while reg
       toRep = reg[1] if reg

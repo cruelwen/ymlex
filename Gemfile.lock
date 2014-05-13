@@ -2,7 +2,6 @@ GEM
   remote: http://ruby.taobao.org/
   specs:
     diff-lcs (1.2.5)
-    mustache (0.99.5)
     rspec (2.14.1)
       rspec-core (~> 2.14.0)
       rspec-expectations (~> 2.14.0)
@@ -16,5 +15,4 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  mustache
   rspec
