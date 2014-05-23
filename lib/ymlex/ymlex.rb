@@ -3,6 +3,7 @@
 class Ymlex
 
   @log = Logger.new STDOUT
+  @log.level = Logger::WARN
 
   def self.initLogger logger
     @log = logger
@@ -56,30 +57,31 @@ class Ymlex
     input
   end
 
-  def self.verblize input, ref = nil
+  def self.verblize input, ref = nil, selfRule = ""
     ref ||= input
     case 
     when input.class == Hash
       input.each do |key,value|
-        input[key] = verblize value, ref
+        input[key] = verblize value, ref, "#{selfRule}_#{key}"
       end
     when input.class == Array
       input.each_index do |i|
-        input[i] = verblize input[i], ref
+        input[i] = verblize input[i], ref, selfRule
       end
     when input.class == String
-      input = verbString input, ref
+      input = verbString input, ref, selfRule
     end
     input
   end
 
-  def self.verbString input, ref
+  def self.verbString input, ref, selfRule
     @log.debug "verbString #{input},ref is #{ref}"
+    input = input.gsub(/\${self}/, selfRule)
     reg = /\${(.*?)}/.match(input)
     while reg
-      toRep = reg[1] if reg
+      toRep = reg[1]
       toEval = toRep.gsub(/[\.]/,"\"][\"").sub(/^/,"ref[\"").sub(/$/,"\"]")
-      begin 
+      begin
         resultEval = eval toEval
       rescue
         @log.error "fail to verbString #{input}"
@@ -88,6 +90,7 @@ class Ymlex
       input = input.sub(/\${(.*?)}/,resultEval)
       reg = /\${(.*?)}/.match(input)
     end
+
     input
   end
 

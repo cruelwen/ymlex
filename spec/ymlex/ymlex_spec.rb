@@ -4,7 +4,6 @@ require 'spec_helper'
 describe Ymlex do
   before do
     logger = Logger.new STDOUT
-#    logger.level = Logger::INFO
     Ymlex.initLogger logger
   end
 
@@ -26,7 +25,10 @@ describe Ymlex do
      end
   end
   it "verbString input" do
-    Ymlex.verbString("${a}", {"a" => "a_v"}).should == "a_v"
-    Ymlex.verbString("${a.b}", {"a" => {"b" => "b_v"}}).should == "b_v"
+    Ymlex.verbString("${a}", {"a" => "a_v"}, "").should == "a_v"
+    Ymlex.verbString("${a.b}", {"a" => {"b" => "b_v"}}, "").should == "b_v"
+  end
+  it "verbString self" do
+    Ymlex.verbString("${self}", {"a" => "a_v" }, "aaa").should == "aaa"
   end
 end
