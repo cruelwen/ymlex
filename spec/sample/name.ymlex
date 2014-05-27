@@ -1,3 +1,4 @@
+name: name_v
 a: a_v
 b: "${a}/b"
 c:

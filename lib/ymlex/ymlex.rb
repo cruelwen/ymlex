@@ -4,6 +4,7 @@ class Ymlex
 
   @log = Logger.new STDOUT
   @log.level = Logger::WARN
+  @name = nil
 
   def self.initLogger logger
     @log = logger
@@ -28,6 +29,7 @@ class Ymlex
   def self.loadFile file
     @log.debug "start load file: #{file}"
     input = YAML.load_file file
+    @name = input["name"] || nil
     @tptDir ||= File.dirname file
     input = parse input
     @log.debug "after parse, #{file} is #{input}"
@@ -57,12 +59,13 @@ class Ymlex
     input
   end
 
-  def self.verblize input, ref = nil, selfRule = ""
+  def self.verblize input, ref = nil, selfRule = nil
     ref ||= input
     case 
     when input.class == Hash
       input.each do |key,value|
-        input[key] = verblize value, ref, "#{selfRule}_#{key}"
+        nextRule = selfRule ? "#{selfRule}_#{key}" : key
+        input[key] = verblize value, ref, nextRule
       end
     when input.class == Array
       input.each_index do |i|
@@ -76,7 +79,10 @@ class Ymlex
 
   def self.verbString input, ref, selfRule
     @log.debug "verbString #{input},ref is #{ref}"
-    input = input.gsub(/\${self}/, selfRule)
+    selfRule = selfRule.sub(/^/, @name) if @name
+    selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '')
+    input = input.gsub(/@{self}/, selfRule)
+
     reg = /\${(.*?)}/.match(input)
     while reg
       toRep = reg[1]
@@ -88,6 +94,15 @@ class Ymlex
         raise "fail to verbString #{input}"
       end
       input = input.sub(/\${(.*?)}/,resultEval)
+      reg = /\${(.*?)}/.match(input)
+    end
+
+    reg = /@{(.*?)}/.match(input)
+    while reg
+      toRep = reg[1]
+      keyStr = toRep.gsub(/\./, '_')
+      keyStr = keyStr.sub(/^/, "#{@name}_") if @name
+      input = input.sub(/@{(.*?)}/, keyStr)
       reg = /\${(.*?)}/.match(input)
     end
 

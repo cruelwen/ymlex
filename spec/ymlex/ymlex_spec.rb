@@ -29,6 +29,6 @@ describe Ymlex do
     Ymlex.verbString("${a.b}", {"a" => {"b" => "b_v"}}, "").should == "b_v"
   end
   it "verbString self" do
-    Ymlex.verbString("${self}", {"a" => "a_v" }, "aaa").should == "aaa"
+    Ymlex.verbString("@{self}", {"a" => "a_v" }, "aaa").should == "aaa"
   end
 end

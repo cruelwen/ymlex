@@ -1,17 +1,9 @@
 #!/usr/bin/env ruby
-home = File.join(File.dirname(__FILE__),'..')
-$LOAD_PATH.unshift(File.join(home,'lib'))
 
 require 'ymlex'
+require 'yaml'
 
-config = YAML.load_file File.join(home,"config/ymlex.yml")
-logger = Logger.new(config["log"]["path"],'daily')
-eval "logger.level = Logger::#{config["log"]["level"]}"
-logger.datetime_format = "%Y-%m-%d %H:%M:%S"
-logger.formatter = proc do |severity, datetime, progname, msg|
-  "#{datetime} #{severity} : #{msg}\n"
-end
-
-# YOUR CODE
-
-logger.close
+inputFile, tptDir = ARGV
+Ymlex.initTptDir tptDir
+outHash = Ymlex.load_file inputFile
+puts outHash.to_yaml
