@@ -3,8 +3,7 @@ require 'spec_helper'
 
 describe Ymlex do
   before do
-    logger = Logger.new STDOUT
-    Ymlex.initLogger logger
+    Ymlex.initLogger $logger
   end
 
   it "Pass all samples" do
