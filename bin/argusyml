@@ -5,7 +5,11 @@ $LOAD_PATH.unshift(File.join(home,'lib'))
 
 require 'ymlex'
 
+`rm -rf ./output`
 inputFile, tptDir = ARGV
 Ymlex.initTptDir tptDir if tptDir
-outHash = Ymlex.load_file inputFile
-puts outHash.to_yaml
+ags = ArgusYml.new inputFile
+ags.dump_json "./output"
+puts ags.info_yml.to_yaml
+puts "======"
+puts JSON.pretty_generate ags.instance

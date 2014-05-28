@@ -61,7 +61,7 @@ class Ymlex
 
   def self.verblize input, ref = nil, selfRule = nil
     ref ||= input
-    case 
+    case
     when input.class == Hash
       input.each do |key,value|
         nextRule = selfRule ? "#{selfRule}_#{key}" : key
@@ -79,7 +79,7 @@ class Ymlex
 
   def self.verbString input, ref, selfRule
     @log.debug "verbString #{input},ref is #{ref}"
-    selfRule = selfRule.sub(/^/, @name) if @name
+    selfRule = selfRule.sub(/^/, "#{@name}_") if @name
     selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '')
     input = input.gsub(/@{self}/, selfRule)
 

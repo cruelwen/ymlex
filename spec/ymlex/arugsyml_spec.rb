@@ -26,7 +26,7 @@ describe ArgusYml do
       @ags.reset_instance
       @ags.trans_proc proc
       @ags.instance["raw"].should == [{ "name"=>"test_proc_main", 
-                                        "cycle"=>60, 
+                                        "cycle"=>"60", 
                                         "method"=>"noah", 
                                         "target"=>"procmon", 
                                         "params"=>"/home/work/test" }]
@@ -39,15 +39,16 @@ describe ArgusYml do
 
     it "should trans request" do
       request = { "listen" => { "port" => 8080,
-                                "cycle" => 60,
+                                "cycle" => "60",
                                 "protocol" => "tcp",
                                 "req_type" => "port" }}
       @ags.reset_instance
       @ags.trans_request request
-      @ags.instance["raw"].should == [{ "name"=>"test_request_listen_port", 
-                                        "cycle"=>60, 
-                                        "protocol" => "tcp",
-                                        "req_type" => "port", }]
+      @ags.instance["request"].should == [{ "name"=>"test_request_listen_port", 
+                                            "cycle"=> "60", 
+                                            "port"=> 8080,
+                                            "protocol" => "tcp",
+                                            "req_type" => "port", }]
       @ags.instance["rule"].should == [{ "name"=>"test_request_listen_port",
                                          "formula"=>"test_request_listen_port != 'ok'",
                                          "filter"=>"3/3",
@@ -62,11 +63,11 @@ describe ArgusYml do
       @ags.reset_instance
       @ags.trans_exec exec
       @ags.instance["raw"].should == [{ "name" => "test_exec_flow",
-                                        "cycle" => 60,
+                                        "cycle" => "60",
                                         "method" => "exec",
                                         "target" => "/home/work/opbin/flow.sh" },
                                       { "name" => "test_exec_shell",
-                                        "cycle" => 60,
+                                        "cycle" => "60",
                                         "method" => "exec",
                                         "target" => "/home/work/opbin/go.sh" } ]
     end
@@ -78,7 +79,7 @@ describe ArgusYml do
       @ags.reset_instance
       @ags.trans_log log
       @ags.instance["raw"].should == [{ "name"=>"test_log_accessLog", 
-                                        "cycle"=>60, 
+                                        "cycle"=>"60", 
                                         "method"=>"noah", 
                                         "target"=>"logmon", 
                                         "params"=>"${ATTACHMENT_DIR}/test_log_accessLog.conf" }]
@@ -88,9 +89,9 @@ describe ArgusYml do
                                          "alert"=>"test_log_accessLog_flow" }]
       @ags.instance["alert"][0]["name"].should == "test_log_accessLog_flow"
       @ags.logs.should == { "test_log_accessLog" => { "log_filepath"=>"/home/work/log", 
-                                                      "limit_rate"=>5, 
+                                                      "limit_rate"=> "5", 
                                                       "item"=>[{ "item_name_prefix"=>"test_log_accessLog_flow", 
-                                                                 "cycle"=>60, 
+                                                                 "cycle"=>"60", 
                                                                  "match_str"=>nil, 
                                                                  "filter_str"=>"" }] }}
     end
@@ -125,7 +126,7 @@ describe ArgusYml do
       File.open("#{tmp_dir}/service/b1/instance","r") do |f|
         instance = JSON.parse f.read
       end
-      instance.should == {"raw"=>[], "rule"=>[], "alert"=>[]}
+      instance.should == {"raw"=>[], "request"=>[], "rule"=>[], "alert"=>[]}
 
       exec = { "flow" => { "target" => "/home/work/opbin/flow.sh" }}
       @ags.reset_instance
