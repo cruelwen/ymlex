@@ -5,8 +5,8 @@ Gem::Specification.new do |s|
   s.summary     = "extend ymal!"
   s.email        = "wenli@baidu.com"
   s.description = "extend ymal: support inherit and valueize"
-  s.authors     = ["Cruel Wen"]
-  s.executables = ["ymlex", "argusyml"]
+  s.authors     = ["Wen Li"]
+  s.executables = ["ymlex"]
   s.files       = ["lib/ymlex.rb","lib/ymlex/ymlex.rb","lib/ymlex/argusyml.rb"]
   s.homepage    = 'https://github.com/cruelwen/ymlex'
   s.license     = 'MIT'

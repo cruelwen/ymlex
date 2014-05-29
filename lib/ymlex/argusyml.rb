@@ -47,7 +47,7 @@ end
 class ArgusYml
 
   def self.process_dir dir_path, dest_path
-    filelist = `cd #{dir_path} && find . -type f | grep '.ymlex'`.split(' ')
+    filelist = `find #{dir_path} -type f -name '*yex'`.split(' ')
     filelist.each do |ymx|
       ags = ArgusYml.new ymx
       ags.dump_json dest_path
@@ -228,14 +228,15 @@ class ArgusYml
 
   def trans_request list
     list.each do |raw_key, raw_value|
-      type = raw_value["req_type"] || "port"
-      raw_name = "#{@name}_request_#{raw_key}_#{type}"
-      @instance["request"] << { "name" => raw_name,
-                                "cycle" => raw_value["cycle"] || "60",
-                                "port" => raw_value["port"],
-                                "protocol" => raw_value["protocol"] || "tcp",
-                                "req_type" => type,
-                              }
+      raw_name = "#{@name}_request_#{raw_key}"
+      dft_raw = { "name" => raw_name,
+                  "cycle" => "60",
+                  "port" => "8080",
+                  "protocol" => "tcp",
+                  "mon_idc" => "local",
+                  "req_type" => "port",
+                }
+      @instance["request"] << dft_raw.merge(raw_value)
       alt = @alert.get_alert raw_value["alert"]
       alt["name"] = raw_name
       @instance["rule"] << { "name" => raw_name,

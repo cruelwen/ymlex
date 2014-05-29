@@ -5,7 +5,39 @@ $LOAD_PATH.unshift(File.join(home,'lib'))
 
 require 'ymlex'
 
-inputFile, tptDir = ARGV
-Ymlex.initTptDir tptDir if tptDir
-outHash = Ymlex.load_file inputFile
-puts outHash.to_yaml
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: ymlex [options]"
+  opts.on("-t", "--template [directory]", "Path to template, default is './'") do |template_dir|
+    options[:template] = template_dir
+    Ymlex.initTptDir template_dir
+  end
+  opts.on("-p", "--product [directoy]", "Translate a directiory of ymlex files") do |product_dir|
+    options[:product] = product_dir
+  end
+  opts.on("-j", "--[no-]show-json", "Show the instance in json") do
+    options[:showjson] = true
+  end
+  opts.on("-y", "--[no-]show-yml", "Show the instance in yaml") do
+    options[:showyml] = true
+  end
+  opts.on("-o", "--output [directory]", "Set output directory") do |output_dir|
+    options[:output] = output_dir || "./output"
+  end
+  opts.on("-h", "--help", "Show this help") do
+    puts opts
+    exit
+  end
+end.parse!
+
+if options[:product]
+  ArgusYml.process_dir options[:product], options[:output]
+else
+  until ARGV.empty?
+    input = ARGV.shift
+    ags = ArgusYml.new input
+    puts ags.info_yml.to_yaml if options[:showyml]
+    puts JSON.pretty_generate ags.instance if options[:showjson]
+    ags.dump_json options[:output] if options[:output]
+  end
+end
