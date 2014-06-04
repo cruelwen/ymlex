@@ -44,16 +44,17 @@ describe ArgusYml do
                                 "req_type" => "port" }}
       @ags.reset_instance
       @ags.trans_request request
-      @ags.instance["request"].should == [{ "name"=>"test_request_listen_port", 
+      @ags.instance["request"].should == [{ "name"=>"test_request_listen", 
                                             "cycle"=> "60", 
                                             "port"=> 8080,
                                             "protocol" => "tcp",
+                                            "mon_idc" => "local",
                                             "req_type" => "port", }]
-      @ags.instance["rule"].should == [{ "name"=>"test_request_listen_port",
-                                         "formula"=>"test_request_listen_port != 'ok'",
+      @ags.instance["rule"].should == [{ "name"=>"test_request_listen",
+                                         "formula"=>"test_request_listen != 'ok'",
                                          "filter"=>"3/3",
-                                         "alert"=>"test_request_listen_port"}]
-      @ags.instance["alert"][0]["name"].should == "test_request_listen_port"
+                                         "alert"=>"test_request_listen"}]
+      @ags.instance["alert"][0]["name"].should == "test_request_listen"
     end
 
     it "should trans exec" do

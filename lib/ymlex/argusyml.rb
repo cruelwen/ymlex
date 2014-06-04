@@ -108,7 +108,17 @@ class ArgusYml
         end
         new_instance = {}
         ["raw","request","rule","alert"].each do |type| 
-          new_instance[type] = old_instance[type] + @instance[type] 
+          new_instance[type] = old_instance[type]
+          @instance[type].each do |new_item|
+            idx = old_instance[type].find_index do |old_item| 
+              old_item["name"] == new_item["name"]
+            end
+            if idx
+              new_instance[type][idx] = new_item
+            else
+              new_instance[type] << new_item
+            end
+          end
         end 
       else
         new_instance = @instance

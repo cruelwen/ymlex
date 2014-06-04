@@ -61,10 +61,9 @@ c:
   cb: "/var/lib"
 ```
 
-## 极端简化语法
+## 简化语法示例
 ```yml
-# apache的监控配置
-name: apache
+name: someapp
 anytag: anyvalue # 扩展tag，用来作别的事情
 bns:
 - somebns
@@ -88,10 +87,22 @@ log:
     path: ${basepath}/logs/access_log.`%Y%m%d%H`
     flow:
       match_str: ".*"
-      formula: "@{self} > 1000" # @{self}会拼接出监控项名
+      formula: "@{self}.cps > 1000" # @{self}会拼接出someapp_log_accessLog_flow
 ```
+
 ## 安装
 
+考虑到涉及argus的设计，未发布到rubygems.org，需要手工安装。
+
+使用gem安装
+```bash
+git clone http://gitlab.baidu.com/wenli/ymlex.git
+cd yelex
+gem build .gemspec
+gem install ymlex-1.0.1.gem
+```
+
+使用bundle管理
 ```ruby
 # Gemfile
 gem "ymlex", :git => "http://gitlab.baidu.com/wenli/ymlex.git"
@@ -102,6 +113,8 @@ bundle install
 ```
 
 ## 使用
+
+在命令行下使用
 ```bash
 # 将完整的yml打印在标准输出
 ymlex -y some.yex
@@ -113,6 +126,7 @@ ymlex -o path2output *.yex
 ymlex -t path2template -p path2product -o path2argus
 ```
 
+在ruby内调用
 ```ruby
 require "ymlex"
 # Ymlex.initLogger logger 默认logger为标准输出
@@ -121,9 +135,10 @@ hash = Ymlex.load_file "path_to_file"
 
 # 使用ArgusYml实例
 ags = ArgusYml.new "path_to_file"
+puts ags.info_yml
 puts ags.instance
-pout ags.logs
-ags.dump_json
+puts ags.logs
+ags.dump_json # 写入本地文件
 
 # 转换整个文件夹
 ArgusYml.process_dir ymlex_dir, json_dir

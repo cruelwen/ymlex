@@ -30,14 +30,14 @@ describe Alert do
                 "qa"=>"info", 
                 "remind_interval_second" => 1}
       a = @alt.get_alert level
-      a["max_alert_times"].should == 2
+      a["max_alert_times"].should == "2"
       a["remind_interval_second"].should == 1
       a["sms"].should == ""
       a["mail"].should == "Quick;Richard;"
     end
     it "should get merged level" do
       a = @alt.get_alert
-      a["max_alert_times"].should == 2
+      a["max_alert_times"].should == "2"
       a["sms"].should == "Richard;"
       a["mail"].should == "Quick;Ohmygod;Richard;"
     end

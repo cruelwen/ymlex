@@ -81,7 +81,8 @@ class Ymlex
     @log.debug "verbString #{input},ref is #{ref}"
     selfRule = selfRule.sub(/^/, "#{@name}_") if @name
     selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '')
-    input = input.gsub(/@{self}/, selfRule)
+    selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '') if selfRule =~ /_proc_/
+    input = input.gsub(/[\$@]{self}/, selfRule)
 
     reg = /\${(.*?)}/.match(input)
     while reg
