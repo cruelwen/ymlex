@@ -179,6 +179,7 @@ class ArgusYml
 
   def trans_log list
     list.each do |log_key, log_value|
+      next if log_value == "disable"
       raw_name = "#{@name}_log_#{log_key}"
       log_raw = { "name" => raw_name,
                   "cycle" => log_value["cycle"] || "60",
@@ -193,7 +194,7 @@ class ArgusYml
                    "item" => []
                  }
       log_value.each do |raw_key, raw_value|
-        next if raw_key == "path"
+        next if (raw_key == "path" || raw_value == "disable")
         item_name_prefix = "#{raw_name}_#{raw_key}" 
         item = { "item_name_prefix" => item_name_prefix,
                  "cycle" => raw_value["cycle"] || "60",
@@ -201,6 +202,7 @@ class ArgusYml
                  "filter_str" => raw_value["filter_str"] || "",
                }
         log_conf["item"] << item
+        next unless raw_value["formula"]
         alt = @alert.get_alert raw_value["alert"]
         alt["name"] = item_name_prefix
         @instance["alert"] << alt
@@ -223,7 +225,7 @@ class ArgusYml
                             "target" => "procmon",
                             "params" => raw_value["path"] }
       raw_value.each do |rule_key, rule_value|
-        next if rule_key == "path"
+        next if (rule_key == "path" || !rule_value["formula"] || rule_value == "disable")
         rule_name = "#{raw_name}_#{rule_key}"
         alt = @alert.get_alert rule_value["alert"]
         alt["name"] = rule_name
@@ -238,6 +240,7 @@ class ArgusYml
 
   def trans_request list
     list.each do |raw_key, raw_value|
+      next if raw_value == "disable"
       raw_name = "#{@name}_request_#{raw_key}"
       dft_raw = { "name" => raw_name,
                   "cycle" => "60",
