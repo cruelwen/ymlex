@@ -54,7 +54,7 @@ class ArgusYml
     end
   end
 
-  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert
+  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert, :aggr
 
   def initialize filename_or_hash
     if filename_or_hash.kind_of? String
@@ -66,6 +66,7 @@ class ArgusYml
     @name = @info_yml["name"]
     @bns = @info_yml["bns"]
     @logs = {}
+    @aggr = []
     @alert = Alert.new @info_yml["contacts"], @info_yml["alert"]
     reset_instance
     trans_ytoj
@@ -95,6 +96,8 @@ class ArgusYml
     @bns.each do |bns_name|
       dir = "#{dir_path}/service/#{bns_name}"
       `mkdir -p #{dir}`
+
+      # instance
       filename = "#{dir}/instance"
       if append_mode 
         old_instance = nil
@@ -109,6 +112,7 @@ class ArgusYml
         new_instance = {}
         ["raw","request","rule","alert"].each do |type| 
           new_instance[type] = old_instance[type]
+          next unless @instance[type]
           @instance[type].each do |new_item|
             idx = old_instance[type].find_index do |old_item| 
               old_item["name"] == new_item["name"]
@@ -123,16 +127,34 @@ class ArgusYml
       else
         new_instance = @instance
       end
-
       File.open(filename,"w") do |f|
         f.puts JSON.pretty_generate new_instance
       end
 
+      # log
       @logs.each do |log_key, log_value|
         log_name = "#{dir}/#{log_key}.conf"
         File.open(log_name, "w") do |f|
           f.puts JSON.pretty_generate log_value
         end
+      end
+
+      # aggr
+      aggr_name = "#{dir}/service"
+      new_service = @aggr
+      if append_mode 
+        old_service = nil
+        begin
+          File.open(aggr_name,"r") do |f|
+            old_instance = (JSON.parse f.read)["aggr"]
+          end
+        rescue
+          old_instance = nil
+        end
+        new_service = (new_service + old_instance).uniq if old_instance
+      end
+      File.open(aggr_name, "w") do |f|
+        f.puts JSON.pretty_generate({ "aggr" => new_service })
       end
     end
   end
@@ -146,12 +168,18 @@ class ArgusYml
         trans_request value
       when "exec"
         trans_exec value
-      when "other_rule"
+      when "other"
         trans_other value
       when "log"
         trans_log value
+      when "aggr"
+        trans_aggr value
       end
     end
+  end
+
+  def trans_aggr list
+    @aggr = list
   end
 
   def trans_exec list
@@ -179,7 +207,6 @@ class ArgusYml
 
   def trans_log list
     list.each do |log_key, log_value|
-      next if log_value == "disable"
       raw_name = "#{@name}_log_#{log_key}"
       log_raw = { "name" => raw_name,
                   "cycle" => log_value["cycle"] || "60",
@@ -194,7 +221,7 @@ class ArgusYml
                    "item" => []
                  }
       log_value.each do |raw_key, raw_value|
-        next if (raw_key == "path" || raw_value == "disable")
+        next if raw_key == "path"
         item_name_prefix = "#{raw_name}_#{raw_key}" 
         item = { "item_name_prefix" => item_name_prefix,
                  "cycle" => raw_value["cycle"] || "60",
@@ -225,7 +252,7 @@ class ArgusYml
                             "target" => "procmon",
                             "params" => raw_value["path"] }
       raw_value.each do |rule_key, rule_value|
-        next if (rule_key == "path" || !rule_value["formula"] || rule_value == "disable")
+        next if (rule_key == "path" || !rule_value["formula"])
         rule_name = "#{raw_name}_#{rule_key}"
         alt = @alert.get_alert rule_value["alert"]
         alt["name"] = rule_name
@@ -240,7 +267,6 @@ class ArgusYml
 
   def trans_request list
     list.each do |raw_key, raw_value|
-      next if raw_value == "disable"
       raw_name = "#{@name}_request_#{raw_key}"
       dft_raw = { "name" => raw_name,
                   "cycle" => "60",

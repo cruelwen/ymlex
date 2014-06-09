@@ -27,14 +27,11 @@ class Ymlex
   end
 
   def self.loadFile file
-    @log.debug "start load file: #{file}"
     input = YAML.load_file file
     @name = input["name"] || nil
     @tptDir ||= File.dirname file
     input = parse input
-    @log.debug "after parse, #{file} is #{input}"
     input = verblize input
-    @log.debug "after verblize, #{file} is #{input}"
     input
   end
 
@@ -78,7 +75,6 @@ class Ymlex
   end
 
   def self.verbString input, ref, selfRule
-    @log.debug "verbString #{input},ref is #{ref}"
     selfRule = selfRule.sub(/^/, "#{@name}_") if @name
     selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '')
     selfRule = selfRule.sub(/_[a-zA-Z0-9]*$/, '') if selfRule =~ /_proc_/
@@ -117,13 +113,15 @@ class Ymlex
           father[key] = merge value, child[key]
         elsif value.class == Array && child[key].class == Array
           father[key] = (value + child[key]).uniq
+        elsif child[key] == "disable"
+          father.delete key
         else
           father[key] = child[key]
         end
       end
     end
     child.each do |key,value|
-      father[key] ||= value
+      father[key] ||= value if value != "disable"
     end
     father
   end
