@@ -195,12 +195,16 @@ class ArgusYml
   def trans_other list
     list.each do | rule_key, rule_value |
       rule_name = "#{@name}_other_#{rule_key}"
-      alt = @alert.get_alert rule_value["alert"]
-      alt["name"] = rule_name
-      @instance["alert"] << alt
+      alert_name = "default_alert"
+      if rule_value["alert"]
+        alt = @alert.get_alert rule_value["alert"]
+        alt["name"] = rule_name
+        @instance["alert"] << alt
+        alert_name = rule_name
+      end
       @instance["rule"] << { "name" => rule_name,
                              "formula" => rule_value["formula"],
-                             "filter" => rule_value["filter"] || "3/3",
+                             "filter" => rule_value["filter"] || "1/1",
                              "alert" => rule_name }
     end
   end
@@ -230,13 +234,17 @@ class ArgusYml
                }
         log_conf["item"] << item
         next unless raw_value["formula"]
-        alt = @alert.get_alert raw_value["alert"]
-        alt["name"] = item_name_prefix
-        @instance["alert"] << alt
+        alert_name = "default_alert"
+        if raw_value["alert"]
+          alt = @alert.get_alert raw_value["alert"]
+          alt["name"] = item_name_prefix
+          @instance["alert"] << alt
+          alert_name = item_name_prefix
+        end
         @instance["rule"] << { "name" => item_name_prefix, 
                                "formula" => raw_value["formula"],
-                               "filter" => raw_value["filter"] || "3/3",
-                               "alert" => item_name_prefix,
+                               "filter" => raw_value["filter"] || "1/1",
+                               "alert" => alert_name,
                              }
       end
       @logs[raw_name] = log_conf
@@ -254,13 +262,17 @@ class ArgusYml
       raw_value.each do |rule_key, rule_value|
         next if (rule_key == "path" || !rule_value["formula"])
         rule_name = "#{raw_name}_#{rule_key}"
-        alt = @alert.get_alert rule_value["alert"]
-        alt["name"] = rule_name
+        alert_name = "default_alert"
+        if rule_value["alert"]
+          alt = @alert.get_alert rule_value["alert"]
+          alt["name"] = rule_name
+          @instance["alert"] << alt
+          alert_name = rule_name
+        end
         @instance["rule"] << { "name" => rule_name,
                                "formula" => rule_value["formula"],
                                "filter" => rule_value["filter"]||"3/3",
-                               "alert" => rule_name }
-        @instance["alert"] << alt
+                               "alert" => alert_name }
       end
     end
   end
@@ -276,20 +288,39 @@ class ArgusYml
                   "req_type" => "port",
                 }
       @instance["request"] << dft_raw.merge(raw_value)
-      alt = @alert.get_alert raw_value["alert"]
-      alt["name"] = raw_name
+      alert_name = "default_alert"
+      if raw_value["alert"]
+        alt = @alert.get_alert raw_value["alert"]
+        alt["name"] = raw_name
+        @instance["alert"] << alt
+        alert_name = raw_name
+      end
       @instance["rule"] << { "name" => raw_name,
                              "formula" => "#{raw_name} != 'ok'",
                              "filter" => raw_value["filter"]||"3/3",
-                             "alert" => raw_name }
-      @instance["alert"] << alt
+                             "alert" => alert_name }
     end
   end
 
   private
 
+  def noah_error
+    {
+      "name" => "noah_error",
+      "formula" => "noah_error != '' ",
+      "filter" => "10/10",
+      "alert" => "default_alert",
+    } 
+  end
+
+  def default_alert
+    alt = @alert.get_alert
+    alt["name"] = "default_alert"
+    alt
+  end
+
   def empty
-    {"raw"=>[], "request"=>[], "rule"=>[], "alert"=>[]}
+    {"raw"=>[], "request"=>[], "rule"=>[noah_error], "alert"=>[default_alert]}
   end
 
 end
