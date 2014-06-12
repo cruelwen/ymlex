@@ -8,28 +8,49 @@ class Alert
   # fatal: sms to boss 
   attr :contacts, :default_level
   def initialize contacts, level=nil
+    @oncall = "g_ecomop_maop_oncall"
+    @manager = "g_ecomop_maop_manager"
     @contacts = contacts
-    @default_level = level || {"rd"=>nil, "op"=>nil, "qa"=>nil}
+    @default_level = level || {"rd"=>"err", "op"=>"warn", "qa"=>nil}
   end
 
   def get_alert lvl=nil
     level = lvl ? @default_level.merge(lvl) : @default_level
+
     mail = ""
     sms = ""
     level.each do |role, lvl|
       if ["op","rd","qa"].include? role
-        mail = "#{@contacts[role]};#{mail}" if lvl
-        sms = "#{@contacts[role]};#{sms}" if lvl == "error" or lvl == "fatal"
+        mail = "#{@contacts[role]};#{mail}" if lvl != nil
+        if lvl =~ /err/ or lvl =~ /fatal/ or (lvl =~ /warn/ and role != "op")
+          sms = "#{@contacts[role]};#{sms}" 
+        end
       end
     end
-    {
+    lvl = level["op"]
+    sms = "#{@oncall};#{sms}" if lvl =~ /warn/ or lvl =~ /err/ or lvl =~ /fatal/
+    sms = "#{@manager};#{sms}" if lvl =~ /fatal/
+
+    remind_time = (lvl =~ /fatal/)? "300" : "7200"
+    alt = {
       "max_alert_times" => level["max_alert_times"] || "2",
       "alert_threshold_percent" => level["alert_threshold_percent"] || "0",
       "sms_threshold_percent" => level["sms_threshold_percent"] || "0",
-      "remind_interval_second" => level["remind_interval_second"] || "0",
+      "remind_interval_second" => level["remind_interval_second"] || remind_time,
       "mail" => mail,
       "sms" => sms,
     }
+    if lvl =~ /warn/
+      alt["level1_upgrade_interval"] = "10800"
+      alt["level1_upgrade_sms"] = @contacts["op"]
+      alt["level2_upgrade_interval"] = "36000"
+      alt["level2_upgrade_sms"] = @manager
+    end
+    if lvl =~ /err/
+      alt["level1_upgrade_interval"] = "10800"
+      alt["level1_upgrade_sms"] = @manager
+    end
+    alt
   end
 
   def get_mail lvl=nil
@@ -54,7 +75,7 @@ class ArgusYml
     end
   end
 
-  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert, :aggr
+  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert
 
   def initialize filename_or_hash
     if filename_or_hash.kind_of? String
@@ -66,8 +87,10 @@ class ArgusYml
     @name = @info_yml["name"]
     @bns = @info_yml["bns"]
     @logs = {}
-    @aggr = []
     @alert = Alert.new @info_yml["contacts"], @info_yml["alert"]
+    @service_aggr = []
+    @service_rule = []
+    @service_alert = [default_alert]
     reset_instance
     trans_ytoj
   end
@@ -93,69 +116,61 @@ class ArgusYml
   end
 
   def dump_json dir_path, append_mode = true
-    @bns.each do |bns_name|
-      dir = "#{dir_path}/service/#{bns_name}"
-      `mkdir -p #{dir}`
+    
+    product = @bns.first.sub(/^.*?\./,"").sub(/\..*$/,"").downcase
+    dir = "#{dir_path}/cluster/cluster.#{@name}.#{product}.all"
+    `mkdir -p #{dir}`
 
-      # instance
-      filename = "#{dir}/instance"
-      if append_mode 
-        old_instance = nil
-        begin
-          File.open(filename,"r") do |f|
-            old_instance = JSON.parse f.read
-          end
-          old_instance = empty if !old_instance
-        rescue
-          old_instance = empty
+    # instance
+    filename = "#{dir}/instance"
+    if append_mode 
+      old_instance = nil
+      begin
+        File.open(filename,"r") do |f|
+          old_instance = JSON.parse f.read
         end
-        new_instance = {}
-        ["raw","request","rule","alert"].each do |type| 
-          new_instance[type] = old_instance[type]
-          next unless @instance[type]
-          @instance[type].each do |new_item|
-            idx = old_instance[type].find_index do |old_item| 
-              old_item["name"] == new_item["name"]
-            end
-            if idx
-              new_instance[type][idx] = new_item
-            else
-              new_instance[type] << new_item
-            end
+        old_instance = empty if !old_instance
+      rescue
+        old_instance = empty
+      end
+      new_instance = {}
+      ["raw","request","rule","alert"].each do |type| 
+        new_instance[type] = old_instance[type]
+        next unless @instance[type]
+        @instance[type].each do |new_item|
+          idx = old_instance[type].find_index do |old_item| 
+            old_item["name"] == new_item["name"]
           end
-        end 
-      else
-        new_instance = @instance
-      end
-      File.open(filename,"w") do |f|
-        f.puts JSON.pretty_generate new_instance
-      end
+          if idx
+            new_instance[type][idx] = new_item
+          else
+            new_instance[type] << new_item
+          end
+        end
+      end 
+    else
+      new_instance = @instance
+    end
+    File.open(filename,"w") do |f|
+      f.puts JSON.pretty_generate new_instance
+    end
 
-      # log
-      @logs.each do |log_key, log_value|
-        log_name = "#{dir}/#{log_key}.conf"
-        File.open(log_name, "w") do |f|
-          f.puts JSON.pretty_generate log_value
-        end
+    # log
+    @logs.each do |log_key, log_value|
+      log_name = "#{dir}/#{log_key}.conf"
+      File.open(log_name, "w") do |f|
+        f.puts JSON.pretty_generate log_value
       end
+    end
 
-      # aggr
-      aggr_name = "#{dir}/service"
-      new_service = @aggr
-      if append_mode 
-        old_service = nil
-        begin
-          File.open(aggr_name,"r") do |f|
-            old_instance = (JSON.parse f.read)["aggr"]
-          end
-        rescue
-          old_instance = nil
-        end
-        new_service = (new_service + old_instance).uniq if old_instance
-      end
-      File.open(aggr_name, "w") do |f|
-        f.puts JSON.pretty_generate({ "aggr" => new_service })
-      end
+    # cluster
+    aggr_name = "#{dir}/cluster"
+    File.open(aggr_name, "w") do |f|
+      f.puts JSON.pretty_generate({ "namespace_list" => @bns,
+                                    "aggr" => @service_aggr,
+                                    "rule" => @service_rule,
+                                    "alert" => @service_alert,
+                                  })
     end
   end
 
@@ -179,7 +194,25 @@ class ArgusYml
   end
 
   def trans_aggr list
-    @aggr = list
+    list.each do | rule_name, value | 
+      @service_aggr << { "items" => value["items"],
+                         "types" => value["types"] || "sum",
+                       }
+      if value["formula"]
+        rule_name = "#{@name}_aggr_#{rule_name}"
+        alert_name = "default_alert"
+        if value["alert"]
+          alt = @alert.get_alert value["alert"]
+          alt["name"] = rule_name
+          @service_alert << alt
+          alert_name = rule_name
+        end
+        @service_rule << { "name" => rule_name,
+                           "formula" => value["formula"],
+                           "filter" => value["filter"] || "1/1",
+                           "alert" => alert_name }
+      end
+    end
   end
 
   def trans_exec list
@@ -205,7 +238,7 @@ class ArgusYml
       @instance["rule"] << { "name" => rule_name,
                              "formula" => rule_value["formula"],
                              "filter" => rule_value["filter"] || "1/1",
-                             "alert" => rule_name }
+                             "alert" => alert_name }
     end
   end
 
@@ -309,7 +342,7 @@ class ArgusYml
       "name" => "noah_error",
       "formula" => "noah_error != '' ",
       "filter" => "10/10",
-      "alert" => "default_alert",
+      "alert" => "noah_error_alert",
     } 
   end
 
@@ -319,8 +352,14 @@ class ArgusYml
     alt
   end
 
+  def noah_error_alert
+    alt = @alert.get_alert({"rd" => nil, "qa" => nil, "op" => "warn" })
+    alt["name"] = "noah_error_alert"
+    alt
+  end
+
   def empty
-    {"raw"=>[], "request"=>[], "rule"=>[noah_error], "alert"=>[default_alert]}
+    {"raw"=>[], "request"=>[], "rule"=>[noah_error], "alert"=>[default_alert,noah_error_alert]}
   end
 
 end

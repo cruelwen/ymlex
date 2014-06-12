@@ -2,6 +2,20 @@
 require 'spec_helper'
 
 describe ArgusYml do
+
+  def noah_error
+    {
+      "name" => "noah_error",
+      "formula" => "noah_error != '' ",
+      "filter" => "10/10",
+      "alert" => "default_alert",
+    } 
+  end
+
+  def default_alert
+    {"max_alert_times"=>"2", "alert_threshold_percent"=>"0", "sms_threshold_percent"=>"0", "remind_interval_second"=>"0", "mail"=>"Quick;Ohmygod;Richard;", "sms"=>"Richard;", "name"=>"default_alert"}
+  end
+
   before(:each) do
     contact = { "rd" => "Richard",
                 "qa" => "Quick",
@@ -30,11 +44,12 @@ describe ArgusYml do
                                         "method"=>"noah", 
                                         "target"=>"procmon", 
                                         "params"=>"/home/work/test" }]
-      @ags.instance["rule"].should == [{ "name"=>"test_proc_main_threadNum",
+      @ags.instance["rule"].should == [ noah_error, 
+                                        {"name"=>"test_proc_main_threadNum",
                                          "formula"=>"something > 0",
                                          "filter"=>"3/3",
-                                         "alert"=>"test_proc_main_threadNum"}]
-      @ags.instance["alert"][0]["name"].should == "test_proc_main_threadNum"
+                                         "alert"=>"default_alert"}]
+      @ags.instance["alert"][0]["name"].should == "default_alert"
     end
 
     it "should trans request" do
@@ -50,11 +65,11 @@ describe ArgusYml do
                                             "protocol" => "tcp",
                                             "mon_idc" => "local",
                                             "req_type" => "port", }]
-      @ags.instance["rule"].should == [{ "name"=>"test_request_listen",
+      @ags.instance["rule"].should == [ noah_error, 
+                                        {"name"=>"test_request_listen",
                                          "formula"=>"test_request_listen != 'ok'",
                                          "filter"=>"3/3",
-                                         "alert"=>"test_request_listen"}]
-      @ags.instance["alert"][0]["name"].should == "test_request_listen"
+                                         "alert"=>"default_alert"}]
     end
 
     it "should trans exec" do
@@ -84,11 +99,12 @@ describe ArgusYml do
                                         "method"=>"noah", 
                                         "target"=>"logmon", 
                                         "params"=>"${ATTACHMENT_DIR}/test_log_accessLog.conf" }]
-      @ags.instance["rule"].should == [{ "name"=>"test_log_accessLog_flow", 
-                                         "formula"=>"something > 1", 
-                                         "filter"=>"3/3", 
-                                         "alert"=>"test_log_accessLog_flow" }]
-      @ags.instance["alert"][0]["name"].should == "test_log_accessLog_flow"
+      @ags.instance["rule"].should == [ noah_error, 
+                                        { "name"=>"test_log_accessLog_flow", 
+                                          "formula"=>"something > 1", 
+                                          "filter"=>"1/1", 
+                                          "alert"=>"default_alert" }]
+      @ags.instance["alert"][0]["name"].should == "default_alert"
       @ags.logs.should == { "test_log_accessLog" => { "log_filepath"=>"/home/work/log", 
                                                       "limit_rate"=> "5", 
                                                       "item"=>[{ "item_name_prefix"=>"test_log_accessLog_flow", 
@@ -103,18 +119,16 @@ describe ArgusYml do
               } 
       @ags.reset_instance
       @ags.trans_other other
-      @ags.instance["rule"][0].should == { "name" => "test_other_o1",
+      @ags.instance["rule"][1].should == { "name" => "test_other_o1",
                                            "formula" => "o1 > 0",
-                                           "filter" => "3/3",
+                                           "filter" => "1/1",
                                            "alert" => "test_other_o1",
                                          }
-      @ags.instance["rule"][1].should == { "name" => "test_other_o2",
+      @ags.instance["rule"][2].should == { "name" => "test_other_o2",
                                            "formula" => "o2 > 0",
-                                           "filter" => "3/3",
+                                           "filter" => "1/1",
                                            "alert" => "test_other_o2",
                                          }
-      @ags.instance["alert"][0]["name"].should == "test_other_o1"
-      @ags.instance["alert"][1]["name"].should == "test_other_o2"
     end
   end
 
@@ -127,7 +141,7 @@ describe ArgusYml do
       File.open("#{tmp_dir}/service/b1/instance","r") do |f|
         instance = JSON.parse f.read
       end
-      instance.should == {"raw"=>[], "request"=>[], "rule"=>[], "alert"=>[]}
+      instance.should == {"raw"=>[], "request"=>[], "rule"=>[noah_error], "alert"=>[default_alert]}
 
       exec = { "flow" => { "target" => "/home/work/opbin/flow.sh" }}
       @ags.reset_instance
