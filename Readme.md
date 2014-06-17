@@ -1,6 +1,8 @@
 # Ymlex Noah监控3.0监控配置管理工具
+
 ## 安装
 考虑到涉及argus的设计，未发布到rubygems.org，需要手工安装。
+
 ### 使用gem安装
 ```bash
 git clone http://gitlab.baidu.com/wenli/ymlex.git
@@ -8,6 +10,7 @@ cd yelex
 gem build .gemspec
 gem install ymlex-1.0.1.gem # 版本号可能不同
 ```
+
 ### 使用bundle管理
 ```ruby
 # Gemfile
@@ -16,8 +19,10 @@ gem "ymlex", :git => "http://gitlab.baidu.com/wenli/ymlex.git"
 ```bash
 bundle install 
 ```
+
 ## 使用
-### 自动更新一个产品线
+
+### 快速一个产品线
 ```bash
 ymlex -a product_name
 ```
@@ -27,6 +32,7 @@ ymlex -a product_name
 注意： 
 1. *在确认更新内容后，需要手工ci才能生效！*
 2. *自动更新不会删除原有的监控项目，如需删除必须手工删除。*
+
 ### 其他命令
 ```bash
 # 将完整的yml打印在标准输出
@@ -40,6 +46,7 @@ ymlex -t template_path -p product_path -o outpu_path
 # 从Argus的日志监控转到Ymlex
 ymlex -l xxx.log.conf
 ```
+
 ### 在ruby内调用
 ```ruby
 require "ymlex"
@@ -62,11 +69,13 @@ ArgusYml.process_dir ymlex_dir, json_dir
 一个Yml语法的扩展，用于快速生产Yml配置，支持：
 * 继承
 * 变量替换
+
 # ArgusYml - Argus监控的YML格式描述
 一个面向Argus的变体描述，特性：
 * 使用YML，而非JSON
 * 面向模块，而非BNS
 * 极端简化语法
+
 ## 继承
 Yml模板(就是标准的YML)
 ```yml
@@ -97,6 +106,7 @@ d: "d_new"
 * 不只是当前层Merge，而是对所有Hash都会Merge
 * 支持递归继承（没处理遇到环的情况）
 * 支持在不同层进行多重继承，仅对当前层有效
+
 ## 变量替换
 ```yml
 a: "/home"
