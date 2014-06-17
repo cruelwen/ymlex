@@ -340,7 +340,8 @@ class ArgusYml
   def noah_error
     {
       "name" => "noah_error",
-      "formula" => "noah_error != '' ",
+      # "formula" => "noah_error != '' && time_between('100000-180000')",
+      "formula" => "noah_error != '' && not_contain(noah_error,'logmon open log failed') ",
       "filter" => "10/10",
       "alert" => "noah_error_alert",
     } 

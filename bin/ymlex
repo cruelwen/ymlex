@@ -24,13 +24,64 @@ OptionParser.new do |opts|
   opts.on("-o", "--output [directory]", "Set output directory") do |output_dir|
     options[:output] = output_dir || "./output"
   end
+  opts.on("-l", "--log [log_name]", "Trans log monitor") do |log_name|
+    options[:log] = log_name
+  end
+  opts.on("-a", "--auto [product]", "Trans product automatically") do |product|
+    options[:auto] = product
+  end
   opts.on("-h", "--help", "Show this help") do
     puts opts
     exit
   end
 end.parse!
 
-if options[:product]
+case
+when options[:log]
+  filename = options[:log]
+  log_js = {}
+  File.open(filename,"r") do |f|
+    log_js = JSON.parse f.read
+  end
+  log_yml = {}
+  log_yml["path"] = log_js["log_filepath"]
+  log_js["item"].each do |item|
+    name = item["item_name_prefix"]
+    item.delete "item_name_prefix"
+    log_yml[name] = item
+  end
+  puts log_yml.to_yaml
+  exit
+when options[:auto]
+  git_product = options[:auto]
+  svn_product = git_product.upcase
+  git_remote = "http://gitlab.baidu.com/sdc-monitor/#{git_product}.git"
+  template_remote = "http://gitlab.baidu.com/sdc-monitor/template.git"
+  svn_remote = "http://svn.noah.baidu.com/svn/conf/online/#{svn_product}"
+  local_path = options[:output] || "/tmp/ymlex_auto"
+  git_path = "#{local_path}/git/#{git_product}"
+  template_path = "#{local_path}/git/template"
+  svn_path = "#{local_path}/svn/#{svn_product}"
+  system <<HD_SHELL
+mkdir -p #{local_path}
+cd #{local_path} && rm -rf *
+mkdir -p git && cd git 
+git clone #{git_remote} >/dev/null 2>&1
+git clone #{template_remote} >/dev/null 2>&1 
+cd ..
+mkdir -p svn && cd svn
+svn co #{svn_remote} >/dev/null
+cd ..
+ymlex -p #{git_path} -t #{template_path} -o #{svn_path}
+HD_SHELL
+  puts <<HD_SHELL
+output is in #{svn_path}, you may run code below:
+cd #{svn_path}
+svn diff
+svn ci 
+HD_SHELL
+  exit
+when options[:product]
   ArgusYml.process_dir options[:product], options[:output]
 else
   until ARGV.empty?
