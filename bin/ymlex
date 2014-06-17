@@ -58,26 +58,56 @@ when options[:auto]
   git_remote = "http://gitlab.baidu.com/sdc-monitor/#{git_product}.git"
   template_remote = "http://gitlab.baidu.com/sdc-monitor/template.git"
   svn_remote = "http://svn.noah.baidu.com/svn/conf/online/#{svn_product}"
-  local_path = options[:output] || "/tmp/ymlex_auto"
+  local_path = options[:output] || "./output"
   git_path = "#{local_path}/git/#{git_product}"
   template_path = "#{local_path}/git/template"
   svn_path = "#{local_path}/svn/#{svn_product}"
   system <<HD_SHELL
-mkdir -p #{local_path}
-cd #{local_path} && rm -rf *
-mkdir -p git && cd git 
-git clone #{git_remote} >/dev/null 2>&1
-git clone #{template_remote} >/dev/null 2>&1 
-cd ..
-mkdir -p svn && cd svn
-svn co #{svn_remote} >/dev/null
-cd ..
+mkdir -p #{local_path}/git #{local_path}/svn
+if [[ -d #{git_path} ]]; then
+  echo "#{git_path} exist. git pull ..."
+  cd #{git_path}
+  git pull
+  cd -
+else
+  echo "#{git_path} not exist. git clone ..."
+  cd #{local_path}/git
+  git clone #{git_remote} 
+  cd -
+fi
+if [[ -d #{template_path} ]]; then
+  echo "#{template_path} exist. git pull ..."
+  cd #{template_path}
+  git pull
+  cd -
+else
+  echo "#{template_path} not exist. git clone ..."
+  cd #{local_path}/git
+  git clone #{template_remote} 
+  cd -
+fi
+if [[ -d #{svn_path} ]]; then
+  echo "#{svn_path} exist. svn up ..."
+  cd #{svn_path}
+  svn up
+  cd -
+else
+  echo "#{svn_path} not exist. svn co ..."
+  cd #{local_path}/svn
+  svn co #{svn_remote} 
+  cd -
+fi
+echo "process ymlex ..."
 ymlex -p #{git_path} -t #{template_path} -o #{svn_path}
+cd #{svn_path}
+echo "show svn diff"
+svn st | grep '?'  | awk '{print $2}' | xargs svn add
+svn st | grep '!'  | awk '{print $2}' | xargs svn delete
+svn diff
 HD_SHELL
   puts <<HD_SHELL
-output is in #{svn_path}, you may run code below:
+output is in #{svn_path}, you may check in after comfirm the diff:
 cd #{svn_path}
-svn diff
 svn ci 
 HD_SHELL
   exit
