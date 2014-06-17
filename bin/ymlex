@@ -5,6 +5,23 @@ $LOAD_PATH.unshift(File.join(home,'lib'))
 
 require 'ymlex'
 
+def find_last
+  pwd = Dir.pwd
+  last = nil
+  dir = nil
+  until last or pwd == ""
+    file = "#{pwd}/.ymlex.last"
+    if File.exist? file
+      File.open file, "r" do |f|
+        last = f.read.chomp
+        dir = pwd
+      end
+    end
+    pwd = pwd.sub(/\/(\w)*$/,"")
+  end
+  [last, dir]
+end
+
 options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: ymlex [options]"
@@ -21,6 +38,10 @@ OptionParser.new do |opts|
   opts.on("-y", "--[no-]show-yml", "Show the instance in yaml") do
     options[:showyml] = true
   end
+  opts.on("-c", "--ci [product]", "check in") do |product|
+    product, options[:pwd] = find_last if !product
+    options[:ci] = product
+  end
   opts.on("-o", "--output [directory]", "Set output directory") do |output_dir|
     options[:output] = output_dir || "./output"
   end
@@ -28,6 +49,7 @@ OptionParser.new do |opts|
     options[:log] = log_name
   end
   opts.on("-a", "--auto [product]", "Trans product automatically") do |product|
+    product, options[:pwd] = find_last if !product
     options[:auto] = product
   end
   opts.on("-h", "--help", "Show this help") do
@@ -36,7 +58,19 @@ OptionParser.new do |opts|
   end
 end.parse!
 
+
 case
+when options[:ci]
+  git_product = options[:ci]
+  svn_product = git_product.upcase
+  local_path = options[:output] || options[:pwd] || "./output"
+  git_path = "#{local_path}/git/#{git_product}"
+  svn_path = "#{local_path}/svn/#{svn_product}"
+  puts "git commit and push ..."
+  `cd #{git_path} && git add . && git commit -am 'auto commit' && git push`
+  puts "svn check in ..."
+  `cd #{svn_path} && svn ci -m 'auto check in'`
+  exit
 when options[:log]
   filename = options[:log]
   log_js = {}
@@ -58,12 +92,13 @@ when options[:auto]
   git_remote = "http://gitlab.baidu.com/sdc-monitor/#{git_product}.git"
   template_remote = "http://gitlab.baidu.com/sdc-monitor/template.git"
   svn_remote = "http://svn.noah.baidu.com/svn/conf/online/#{svn_product}"
-  local_path = options[:output] || "./output"
+  local_path = options[:output] || options[:pwd] || "./output"
   git_path = "#{local_path}/git/#{git_product}"
   template_path = "#{local_path}/git/template"
   svn_path = "#{local_path}/svn/#{svn_product}"
   system <<HD_SHELL
 mkdir -p #{local_path}/git #{local_path}/svn
+echo #{git_product} > #{local_path}/.ymlex.last
 if [[ -d #{git_path} ]]; then
   echo "#{git_path} exist. git pull ..."
   cd #{git_path}
@@ -106,6 +141,7 @@ svn st | grep '!'  | awk '{print $2}' | xargs svn delete
 svn diff
 HD_SHELL
   puts <<HD_SHELL
+==================================================================
 output is in #{svn_path}, you may check in after comfirm the diff:
 cd #{svn_path}
 svn ci 
