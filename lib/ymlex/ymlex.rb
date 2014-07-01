@@ -29,7 +29,8 @@ class Ymlex
   def self.loadFile file
     input = YAML.load_file file
     @name = input["name"] || nil
-    @tptDir ||= File.dirname file
+    @pwd = File.dirname file
+    @tptDir ||= @pwd
     input = parse input
     input = verblize input
     input
@@ -49,7 +50,11 @@ class Ymlex
       end
     end
     if input.key? "_inherit"
-      father = loadTpt File.join(@tptDir,input["_inherit"])
+      if File.exist? File.join(@pwd,input["_inherit"])
+        father = loadTpt File.join(@pwd,input["_inherit"])
+      elsif File.exist? File.join(@tptDir,input["_inherit"])
+        father = loadTpt File.join(@tptDir,input["_inherit"])
+      end
       input.delete "_inherit"
       input = merge father, input
     end

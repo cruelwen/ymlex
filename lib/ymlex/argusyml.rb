@@ -67,17 +67,19 @@ end
 
 class ArgusYml
 
-  def self.process_dir dir_path, dest_path
+  def self.process_dir dir_path, dest_path, product = nil
     filelist = `find #{dir_path} -type f -name '*yex'`.split(' ')
+    product = File.basename dir_path if !product
     filelist.each do |ymx|
-      ags = ArgusYml.new ymx
+      puts "process #{ymx}"
+      ags = ArgusYml.new ymx, product
       ags.dump_json dest_path
     end
   end
 
-  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert
+  attr_reader :info_yml, :instance, :logs, :name, :bns, :alert, :node
 
-  def initialize filename_or_hash
+  def initialize filename_or_hash, product = nil
     if filename_or_hash.kind_of? String
       yml = Ymlex.load_file filename_or_hash
     else
@@ -85,7 +87,13 @@ class ArgusYml
     end
     @info_yml = value_to_str yml
     @name = @info_yml["name"]
-    @bns = @info_yml["bns"]
+    @bns = @info_yml["bns"] || []
+    node_list = @info_yml["node"] || []
+    node_str = ""
+    node_list.each {|v| node_str += v + ","}
+    @node = node_str.sub /,$/, ""
+    @product = product || @info_yml["product"] || @bns.first.sub(/^.*?\./,"").sub(/\..*$/,"") || "Undefined_Product"
+    @product.upcase!
     @logs = {}
     @alert = Alert.new @info_yml["contacts"], @info_yml["alert"]
     @service_aggr = []
@@ -117,8 +125,7 @@ class ArgusYml
 
   def dump_json dir_path, append_mode = true
     
-    product = @bns.first.sub(/^.*?\./,"").sub(/\..*$/,"").downcase
-    dir = "#{dir_path}/cluster/cluster.#{@name}.#{product}.all"
+    dir = "#{dir_path}/cluster/cluster.#{@name}.#{@product}.all"
     `mkdir -p #{dir}`
 
     # instance
@@ -166,13 +173,15 @@ class ArgusYml
     # cluster
     aggr_name = "#{dir}/cluster"
     File.open(aggr_name, "w") do |f|
-      f.puts JSON.pretty_generate({ "namespace_list" => @bns,
-                                    "aggr" => @service_aggr,
-                                    "rule" => @service_rule,
-                                    "alert" => @service_alert,
-                                  })
+      cluster = { "aggr" => @service_aggr,
+                  "rule" => @service_rule,
+                  "alert" => @service_alert,
+                }
+      cluster["namespace_list"] = @bns if @bns != []
+      cluster["service_node"] = @node if @node != ""
+      f.puts JSON.pretty_generate cluster
     end
-  end
+  end 
 
   def trans_ytoj
     @info_yml.each do |key, value| 

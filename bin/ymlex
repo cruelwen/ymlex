@@ -42,28 +42,28 @@ OptionParser.new do |opts|
     product, options[:pwd] = find_last if !product
     options[:ci] = product
   end
-  opts.on("-o", "--output [directory]", "Set output directory") do |output_dir|
-    options[:output] = output_dir || "./output"
-  end
-  opts.on("-l", "--log [log_name]", "Trans log monitor") do |log_name|
-    options[:log] = log_name
-  end
   opts.on("-a", "--auto [product]", "Trans product automatically") do |product|
     product, options[:pwd] = find_last if !product
     options[:auto] = product
+  end
+  opts.on("-o", "--output [directory]", "Set output directory") do |output_dir|
+    options[:output] = output_dir
+  end
+  opts.on("-l", "--log [log_name]", "Trans log monitor") do |log_name|
+    options[:log] = log_name
   end
   opts.on("-h", "--help", "Show this help") do
     puts opts
     exit
   end
 end.parse!
-
+options[:output] = options[:auto] || "./output" if !options[:output]
 
 case
 when options[:ci]
   git_product = options[:ci]
   svn_product = git_product.upcase
-  local_path = options[:output] || options[:pwd] || "./output"
+  local_path = options[:pwd] || options[:output]
   git_path = "#{local_path}/git/#{git_product}"
   svn_path = "#{local_path}/svn/#{svn_product}"
   puts "git commit and push ..."
@@ -92,7 +92,7 @@ when options[:auto]
   git_remote = "http://gitlab.baidu.com/sdc-monitor/#{git_product}.git"
   template_remote = "http://gitlab.baidu.com/sdc-monitor/template.git"
   svn_remote = "http://svn.noah.baidu.com/svn/conf/online/#{svn_product}"
-  local_path = options[:output] || options[:pwd] || "./output"
+  local_path = options[:pwd] || options[:output]
   git_path = "#{local_path}/git/#{git_product}"
   template_path = "#{local_path}/git/template"
   svn_path = "#{local_path}/svn/#{svn_product}"
