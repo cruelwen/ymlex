@@ -42,6 +42,9 @@ OptionParser.new do |opts|
     product, options[:pwd] = find_last if !product
     options[:ci] = product
   end
+  opts.on("-n", "--new [modu]", "check in") do |modu|
+    options[:new] = modu
+  end
   opts.on("-a", "--auto [product]", "Trans product automatically") do |product|
     product, options[:pwd] = find_last if !product
     options[:auto] = product
@@ -60,16 +63,58 @@ end.parse!
 options[:output] = options[:auto] || "./output" if !options[:output]
 
 case
+when options[:new]
+  modu = options[:new]
+  file = <<HD_NEW
+name: #{modu}
+# node:
+# - BAIDU_ECOM_SDC_SOMENODE
+# bns:
+# - somebns
+contacts:
+  rd: "" 
+  op: ""
+  qa: ""
+basepath: /home/work/#{modu}
+_inherit: c_base.tpt
+request:
+  listen:
+    port: 8080
+proc:
+  main:
+    path: ${basepath}/bin/#{modu}
+log:
+  accessLog:
+    path: ${basepath}/log/#{modu}.log
+    flow:
+      formula: ${self}_cps >= 1000
+  errorLog:
+    path: ${basepath}/log/#{modu}.log.wf
+    fatal:
+      match_str: FATAL
+      formula: ${self}_cnt > 1
+# aggr:
+#   flow_sum:
+#     items: #{modu}_log_accessLog_flow_cps
+#     types: sum
+HD_NEW
+  File.open "#{modu}.yex", "w" do |f|
+    f.write file
+  end
+  exit
 when options[:ci]
   git_product = options[:ci]
   svn_product = git_product.upcase
   local_path = options[:pwd] || options[:output]
   git_path = "#{local_path}/git/#{git_product}"
   svn_path = "#{local_path}/svn/#{svn_product}"
-  puts "git commit and push ..."
-  `cd #{git_path} && git add . && git commit -am 'auto commit' && git push`
-  puts "svn check in ..."
-  `cd #{svn_path} && svn ci -m 'auto check in'`
+  system <<HD_SHELL_CI
+set -eu
+echo "svn check in ..."
+cd #{svn_path} && svn ci -m 'auto check in'
+echo "git commit and push ..."
+cd #{git_path} && git add . && git commit -am 'auto commit' && git push
+HD_SHELL_CI
   exit
 when options[:log]
   filename = options[:log]
@@ -97,6 +142,7 @@ when options[:auto]
   template_path = "#{local_path}/git/template"
   svn_path = "#{local_path}/svn/#{svn_product}"
   system <<HD_SHELL
+set -eu
 mkdir -p #{local_path}/git #{local_path}/svn
 echo #{git_product} > #{local_path}/.ymlex.last
 if [[ -d #{git_path} ]]; then

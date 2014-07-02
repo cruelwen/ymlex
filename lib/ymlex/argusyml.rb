@@ -93,7 +93,6 @@ class ArgusYml
     node_list.each {|v| node_str += v + ","}
     @node = node_str.sub /,$/, ""
     @product = product || @info_yml["product"] || @bns.first.sub(/^.*?\./,"").sub(/\..*$/,"") || "Undefined_Product"
-    @product.upcase!
     @logs = {}
     @alert = Alert.new @info_yml["contacts"], @info_yml["alert"]
     @service_aggr = []
