@@ -182,8 +182,8 @@ echo "process ymlex ..."
 ymlex -p #{git_path} -t #{template_path} -o #{svn_path}
 cd #{svn_path}
 echo "show svn diff"
-svn st | grep '?'  | awk '{print $2}' | xargs svn add
-svn st | grep '!'  | awk '{print $2}' | xargs svn delete
+svn st | grep '?'  | awk '{print $2}' | xargs svn add || true
+svn st | grep '!'  | awk '{print $2}' | xargs svn delete || true
 svn diff
 HD_SHELL
   puts <<HD_SHELL
