@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'ymlex'
-  s.version     = '1.0.8'
-  s.date        = '2014-07-11'
+  s.version     = '1.1.0'
+  s.date        = '2014-08-01'
   s.summary     = "extend ymal!"
   s.email        = "wenli@baidu.com"
   s.description = "extend ymal: support inherit and valueize"

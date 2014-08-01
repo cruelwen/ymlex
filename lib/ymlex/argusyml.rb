@@ -7,15 +7,19 @@ class Alert
   # error: sms
   # fatal: sms to boss 
   attr :contacts, :default_level
-  def initialize contacts, level=nil
-    @oncall = "g_ecomop_maop_oncall"
-    @manager = "g_ecomop_maop_manager"
+  def initialize contacts, level={}
     @contacts = contacts
-    @default_level = level || {"rd"=>"err", "op"=>"warn", "qa"=>nil}
+    @default_level = { "oncall" => "g_ecomop_maop_oncall", 
+                       "manager" => "g_ecomop_maop_manager",
+                       "rd" => "err", 
+                       "op" => "warn", 
+                       "qa" => nil }.merge(level)
   end
 
-  def get_alert lvl=nil
-    level = lvl ? @default_level.merge(lvl) : @default_level
+  def get_alert lvl={}
+    level = @default_level.merge(lvl)
+    oncall = level["oncall"]
+    manager = level["manager"]
 
     mail = ""
     sms = ""
@@ -28,8 +32,8 @@ class Alert
       end
     end
     lvl = level["op"]
-    sms = "#{@oncall};#{sms}" if lvl =~ /warn/ or lvl =~ /err/ or lvl =~ /fatal/
-    sms = "#{@manager};#{sms}" if lvl =~ /fatal/
+    sms = "#{oncall};#{sms}" if lvl =~ /warn/ or lvl =~ /err/ or lvl =~ /fatal/
+    sms = "#{manager};#{sms}" if lvl =~ /fatal/
 
     remind_time = (lvl =~ /fatal/)? "300" : "7200"
     alt = {
@@ -43,12 +47,14 @@ class Alert
     if lvl =~ /warn/
       alt["level1_upgrade_interval"] = "10800"
       alt["level1_upgrade_sms"] = @contacts["op"]
-      alt["level2_upgrade_interval"] = "36000"
-      alt["level2_upgrade_sms"] = @manager
+      if manager != ""
+        alt["level2_upgrade_interval"] = "36000"
+        alt["level2_upgrade_sms"] = manager
+      end
     end
-    if lvl =~ /err/
+    if lvl =~ /err/ and manager != ""
       alt["level1_upgrade_interval"] = "10800"
-      alt["level1_upgrade_sms"] = @manager
+      alt["level1_upgrade_sms"] = manager
     end
     alt
   end
@@ -348,9 +354,8 @@ class ArgusYml
   def noah_error
     {
       "name" => "noah_error",
-      # "formula" => "noah_error != '' && time_between('100000-180000')",
-      "formula" => "noah_error != '' && not_contain(noah_error,'logmon open log failed') ",
-      "filter" => "10/10",
+      "formula" => "noah_error != '' && not_contain(noah_error,'logmon open log failed') && time_between('080000-220000')",
+      "filter" => "100/100",
       "alert" => "noah_error_alert",
     } 
   end

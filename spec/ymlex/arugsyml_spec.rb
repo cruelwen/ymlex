@@ -5,10 +5,10 @@ describe ArgusYml do
 
   def noah_error
     {
-      "name" => "noah_error",
-      "formula" => "noah_error != '' ",
-      "filter" => "10/10",
-      "alert" => "default_alert",
+      "name" => "noah_error", 
+      "formula" => "noah_error != '' && not_contain(noah_error,'logmon open log failed') && time_between('080000-220000')",
+      "filter" => "100/100",
+      "alert" => "noah_error_alert",
     } 
   end
 
@@ -122,12 +122,12 @@ describe ArgusYml do
       @ags.instance["rule"][1].should == { "name" => "test_other_o1",
                                            "formula" => "o1 > 0",
                                            "filter" => "1/1",
-                                           "alert" => "test_other_o1",
+                                           "alert" => "default_alert",
                                          }
       @ags.instance["rule"][2].should == { "name" => "test_other_o2",
                                            "formula" => "o2 > 0",
                                            "filter" => "1/1",
-                                           "alert" => "test_other_o2",
+                                           "alert" => "default_alert",
                                          }
     end
   end
@@ -138,16 +138,16 @@ describe ArgusYml do
       `rm -rf #{tmp_dir}`
       @ags.dump_json tmp_dir
       instance = nil
-      File.open("#{tmp_dir}/service/b1/instance","r") do |f|
+      File.open("#{tmp_dir}/cluster/cluster.test.b1.all/instance","r") do |f|
         instance = JSON.parse f.read
       end
-      instance.should == {"raw"=>[], "request"=>[], "rule"=>[noah_error], "alert"=>[default_alert]}
+      instance["rule"].should == [noah_error]
 
       exec = { "flow" => { "target" => "/home/work/opbin/flow.sh" }}
       @ags.reset_instance
       @ags.trans_exec exec
       @ags.dump_json tmp_dir
-      File.open("#{tmp_dir}/service/b1/instance","r") do |f|
+      File.open("#{tmp_dir}/cluster/cluster.test.b1.all/instance","r") do |f|
         instance = JSON.parse f.read
       end
       instance["raw"][0]["name"].should == "test_exec_flow"
@@ -156,7 +156,7 @@ describe ArgusYml do
       @ags.reset_instance
       @ags.trans_exec exec
       @ags.dump_json tmp_dir
-      File.open("#{tmp_dir}/service/b1/instance","r") do |f|
+      File.open("#{tmp_dir}/cluster/cluster.test.b1.all/instance","r") do |f|
         instance = JSON.parse f.read
       end
       instance["raw"][0]["name"].should == "test_exec_flow"
